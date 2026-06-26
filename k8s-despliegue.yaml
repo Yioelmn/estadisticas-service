@@ -5,7 +5,7 @@ metadata:
   labels:
     app: bonos-service
 spec:
-  replicas: 2 # El profesor suele pedir alta disponibilidad base (2 pods)
+  replicas: 2 
   selector:
     matchLabels:
       app: bonos-service
@@ -16,13 +16,12 @@ spec:
     spec:
       containers:
       - name: bonos-service
-        # NOTA: En el pipeline de CI/CD GitHub Actions reemplazará esta imagen automáticamente
         image: bonos-service:latest
         ports:
         - containerPort: 8000
         envFrom:
         - secretRef:
-            name: casino-secrets # Asume que tus credenciales de BD están en este Secret global del clúster
+            name: casino-secrets
         resources:
           requests:
             cpu: "100m"
@@ -48,7 +47,7 @@ kind: Service
 metadata:
   name: bonos-service
 spec:
-  type: ClusterIP # Obligatorio: Backends nunca se exponen directamente a internet
+  type: ClusterIP
   ports:
   - port: 8000
     targetPort: 8000
@@ -72,4 +71,4 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 60 # Escala cuando la CPU promedio supere el 60%
+        averageUtilization: 60
