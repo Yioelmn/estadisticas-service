@@ -1,0 +1,52 @@
+name: Build & Deploy to Amazon EKS
+
+on:
+  workflow_dispatch:           
+  push:
+    branches: [ deploy ]       
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar credenciales AWS (Learner Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token:     ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Login a Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: 'true'
+
+      - name: Build & Push de la Imagen a ECR
+        id: build-image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          REPOSITORY: estadisticas-service  
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE=$REGISTRY/$REPOSITORY
+          docker build -t $IMAGE:$IMAGE_TAG -t $IMAGE:latest .
+          docker push $IMAGE:$IMAGE_TAG
+          docker push $IMAGE:latest
+          echo "image=$IMAGE:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Actualizar configuración de Kubeconfig para EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+      - name: Desplegar en el Clúster Amazon EKS
+        env:
+          ECR_IMAGE: ${{ steps.build-image.outputs.image }}
+        run: |
+          sed -i "s|image: estadisticas-service:latest|image: $ECR_IMAGE|g" k8s-despliegue.yaml
+          
+          kubectl apply -f k8s-despliegue.yaml
