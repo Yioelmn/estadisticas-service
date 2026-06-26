@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bonos-service
+  name: estadisticas-service
   labels:
-    app: bonos-service
+    app: estadisticas-service
 spec:
   replicas: 2 
   selector:
     matchLabels:
-      app: bonos-service
+      app: estadisticas-service
   template:
     metadata:
       labels:
-        app: bonos-service
+        app: estadisticas-service
     spec:
       containers:
-      - name: bonos-service
-        image: bonos-service:latest
+      - name: estadisticas-service
+        image: estadisticas-service:latest
         ports:
         - containerPort: 8000
         envFrom:
@@ -45,24 +45,24 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: bonos-service
+  name: estadisticas-service
 spec:
   type: ClusterIP
   ports:
   - port: 8000
     targetPort: 8000
   selector:
-    app: bonos-service
+    app: estadisticas-service
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: bonos-hpa
+  name: estadisticas-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: bonos-service
+    name: estadisticas-service
   minReplicas: 2
   maxReplicas: 6
   metrics:
